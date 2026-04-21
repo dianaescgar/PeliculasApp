@@ -1,12 +1,20 @@
 package escalante.diana.peliculasapp.modelos
 
+import escalante.diana.peliculasapp.R
+
 class Repositorio {
+    private val usuarios = mutableListOf(
+        Usuario(1, "Diana", "diana@gmail.com", 22, R.drawable.avatarwoman),
+        Usuario(2, "Libia", "libia@gmail.com", 21, R.drawable.bootstrap_person_circle),
+        Usuario(3, "Carlos", "carlos@gmail.com", 70, R.drawable.avatarman),
+        Usuario(4, "Kim", "kim@gmail.com", 20, R.drawable.avatargirl),
+    )
+
     fun getUsuarios(): List<Usuario> {
-        return listOf (
-            Usuario(1, "Diana", "diana@gmail.com", 22),
-            Usuario(2, "Libia", "libia@gmail.com", 21),
-            Usuario(3, "Carlos", "carlos@gmail.com", 70),
-            Usuario(4, "Kim", "kim@gmail.com", 20),
-        )
+        return usuarios.toList()
+    }
+
+    fun agregarUsuario(usuario: Usuario) {
+        usuarios.add(usuario)
     }
 }
