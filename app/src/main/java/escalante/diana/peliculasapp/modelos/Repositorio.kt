@@ -17,4 +17,12 @@ class Repositorio {
     fun agregarUsuario(usuario: Usuario) {
         usuarios.add(usuario)
     }
+
+    fun editarUsuario(usuario: Usuario) {
+        val indice = usuarios.indexOfFirst { it.id == usuario.id }
+
+        if (indice != -1) {
+            usuarios[indice] = usuario
+        }
+    }
 }

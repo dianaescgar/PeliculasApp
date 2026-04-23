@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -56,6 +57,8 @@ fun PeliculaScreen(viewModel: PeliculaViewModel) {
     val peliculas = viewModel.pelicula.value
     var mostrarDialogo by remember { mutableStateOf(false) }
 
+    var peliculaEditar by remember { mutableStateOf<Pelicula?>(null) }
+
     Scaffold (
         topBar = {
             TopAppBar(
@@ -86,30 +89,48 @@ fun PeliculaScreen(viewModel: PeliculaViewModel) {
             items(peliculas) { pelicula ->
                 PeliculaCard(
                     pelicula = pelicula,
-                    onDelete = { viewModel.eliminaPelicula(pelicula) }
+                    onDelete = { viewModel.eliminaPelicula(pelicula) },
+                    onLongClick = {
+                        peliculaEditar = pelicula
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
-    }
 
-    if(mostrarDialogo){
-        AgregarPeliculaDialog(
-            onDismiss = { mostrarDialogo = false },
-            onConfirm = { titulo, categoria, duracion, sinopsis, fotoUri ->
-                viewModel.agregaPelicula(titulo, categoria, duracion, sinopsis, fotoUri)
-                mostrarDialogo = false
-            }
-        )
+        if(mostrarDialogo){
+            AgregarPeliculaDialog(
+                onDismiss = { mostrarDialogo = false },
+                onConfirm = { titulo, categoria, duracion, sinopsis, fotoUri ->
+                    viewModel.agregaPelicula(titulo, categoria, duracion, sinopsis, fotoUri)
+                    mostrarDialogo = false
+                }
+            )
+        }
+
+        peliculaEditar?.let { pelicula ->
+            EditarPeliculaDialog(
+                pelicula = pelicula,
+                onDismiss = { peliculaEditar = null },
+                onConfirm = { id, titulo, categoria, duracion, sinopsis, fotoUri ->
+                    viewModel.editarPelicula(id, titulo, categoria, duracion, sinopsis, fotoUri)
+                    peliculaEditar = null
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun PeliculaCard(pelicula: Pelicula, onDelete: () -> Unit) {
+fun PeliculaCard(pelicula: Pelicula, onDelete: () -> Unit, onLongClick: () -> Unit) {
     val context = LocalContext.current
 
     Card (
         modifier = Modifier.fillMaxSize()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onLongClick
+            )
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -236,6 +257,107 @@ fun AgregarPeliculaDialog(
                 }
             ) {
                 Text("Agregar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+
+
+    )
+}
+
+@Composable
+fun EditarPeliculaDialog(
+    pelicula: Pelicula,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, String, String, String, String, String?) -> Unit
+){
+    var titulo by remember { mutableStateOf(pelicula.titulo) }
+    var categoria by remember { mutableStateOf(pelicula.categoria) }
+    var duracion by remember { mutableStateOf(pelicula.duracion) }
+    var sinopsis by remember { mutableStateOf(pelicula.sinopsis) }
+    var foto by remember { mutableStateOf<Uri?>(pelicula.fotoUri?.let {Uri.parse(it)}) }
+
+    var launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) {
+            uri: Uri? ->
+        foto = uri
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {Text("Editar Película")},
+        text = {
+            Column {
+
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(Color.LightGray)
+                        .clickable {
+                            launcher.launch("image/*")
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (foto != null) {
+                        AsyncImage(
+                            model = foto,
+                            contentDescription = "Poster Película",
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.size(60.dp)
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = titulo,
+                    onValueChange = { titulo = it},
+                    label = { Text("Título") },
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = categoria,
+                    onValueChange = { categoria = it },
+                    label = { Text("Categoría") },
+                    singleLine = true,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = duracion,
+                    onValueChange = { duracion = it },
+                    label = { Text("Duración") },
+                    singleLine = true,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = sinopsis,
+                    onValueChange = { sinopsis = it },
+                    label = { Text("Sinopsis") },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (titulo.isNotBlank() && categoria.isNotBlank() && duracion.isNotBlank() && sinopsis.isNotBlank()) {
+                        onConfirm(pelicula.id, titulo, categoria, duracion, sinopsis, foto?.toString())
+                    }
+                }
+            ) {
+                Text("Editar")
             }
         },
         dismissButton = {
